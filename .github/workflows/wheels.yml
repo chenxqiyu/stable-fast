@@ -9,11 +9,10 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          # - ubuntu-22.04
           - windows-2019
-        python: ['3.10', '3.11', '3.12']
-        torch_version: ['2.7.0', '2.8.0', '2.9.0']
-        cuda_short_version: ['126']
+        python: ['3.11']
+        torch_version: ['2.9.1']
+        cuda_short_version: ['128','130']
         exclude:
           - torch_version: '2.9.0'
             python: '3.9'
@@ -25,65 +24,9 @@ jobs:
       torch_version: ${{ matrix.torch_version }}
       cuda_short_version: ${{ matrix.cuda_short_version }}
 
-  build-pypi:
-    # Single canonical build intended for PyPI: no local CUDA/torch suffix
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ['ubuntu-22.04']
-        python: ['3.10', '3.11', '3.12']
-
-    uses: ./.github/workflows/wheels_build.yml
-    with:
-      os: ${{ matrix.os }}
-      python: ${{ matrix.python }}
-      torch_version: '2.9.0'
-      cuda_short_version: '128'
-      append_local_version: '0'  # 0 to disable local version suffix
-
-  # publish to GitHub Release
-  # gh_release:
-  #   name: gh_release
-  #   needs: build
-  #   runs-on: ubuntu-20.04
-
-  #   timeout-minutes: 360
-  #   defaults:
-  #     run:
-  #       shell: bash
-  #   steps:
-  #     - uses: actions/download-artifact@v4
-  #       with:
-  #         path: dist
-
-  #     - run: ls -R dist/
-
-  #     # create night release if it's a push to main
-  #     - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-  #       name: Nightly Release
-  #       uses: andelf/nightly-release@v1
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       with:
-  #         tag_name: nightly
-  #         name: 'stable-fast Nightly Release $$'
-  #         prerelease: true
-  #         body: 'TODO: Add nightly release notes'
-  #         files: |
-  #           dist/*/*.whl
-
-  #     # create release if it's a tag like vx.y.z
-  #     - if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
-  #       name: Release
-  #       uses: softprops/action-gh-release@v1
-  #       with :
-  #         files: |
-  #           dist/*/*.whl
-
-
   consolidate-wheels:
-    needs: [build-local, build-pypi]
-    runs-on: ubuntu-latest
+    needs: [build-local]  # ← 移除了 build-pypi
+    runs-on: windows-latest  # ← 改为 Windows runner，避免隐式 Linux 使用
     steps:
       - name: Download all wheel artifacts
         uses: actions/download-artifact@v4
@@ -91,6 +34,7 @@ jobs:
           path: dist
 
       - name: Consolidate wheels into a single folder
+        shell: bash
         run: |
           mkdir -p consolidated_wheels
           find dist -name '*.whl' -exec cp {} consolidated_wheels/ \;
@@ -101,33 +45,3 @@ jobs:
         with:
           name: built-wheels
           path: consolidated_wheels
-
-  # upload_pip:
-  #   needs: build
-  #   uses: ./.github/workflows/wheels_upload_pip.yml
-  #   with:
-  #     twine_username: __token__
-  #     filter: "*torch2.1.0+cu121*"
-  #     execute: ${{ github.repository == 'chengzeyi/stable-fast' && github.event_name != 'pull_request' }}
-  #   secrets:
-  #     twine_password: ${{ secrets.PYPI_TOKEN }}
-
-  # upload_pt_cu118:
-  #   needs: build
-  #   uses: ./.github/workflows/wheels_upload_s3.yml
-  #   with:
-  #     aws_role: "arn:aws:iam::749337293305:role/pytorch_bot_uploader_role"
-  #     s3_path: s3://pytorch/whl/cu118/
-  #     aws_s3_cp_extra_args: --acl public-read
-  #     filter: "*torch2.1.0+cu118*"
-  #     execute: ${{ github.repository == 'chengzeyi/stable-fast' && github.ref_type == 'tag' }}
-
-  # upload_pt_cu121:
-  #   needs: build
-  #   uses: ./.github/workflows/wheels_upload_s3.yml
-  #   with:
-  #     aws_role: "arn:aws:iam::749337293305:role/pytorch_bot_uploader_role"
-  #     s3_path: s3://pytorch/whl/cu121/
-  #     aws_s3_cp_extra_args: --acl public-read
-  #     filter: "*torch2.1.0+cu121*"
-  #     execute: ${{ github.repository == 'chengzeyi/stable-fast' && github.ref_type == 'tag' }}
