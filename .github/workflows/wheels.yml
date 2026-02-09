@@ -23,7 +23,7 @@ jobs:
 
   consolidate-wheels:
     needs: [build-local]  # ← 移除了 build-pypi
-    runs-on: windows-latest  # ← 改为 Windows runner，避免隐式 Linux 使用
+    runs-on: windows-2019  # ← 改为 Windows runner，避免隐式 Linux 使用
     steps:
       - name: Download all wheel artifacts
         uses: actions/download-artifact@v4
