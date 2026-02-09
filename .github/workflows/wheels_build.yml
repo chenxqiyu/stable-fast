@@ -88,6 +88,8 @@ jobs:
             "116": ("11.6.2", "https://developer.download.nvidia.com/compute/cuda/11.6.2/local_installers/cuda_11.6.2_510.47.03_linux.run"),
           }[cushort]
           cudnn_pypi_package = {
+            "131": "nvidia-cudnn-cu13",
+            "130": "nvidia-cudnn-cu13",
             "128": "nvidia-cudnn-cu12",
             "126": "nvidia-cudnn-cu12",
             "121": "nvidia-cudnn-cu12",
